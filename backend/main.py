@@ -5,6 +5,10 @@ from database.db import engine
 
 from auth.routes import router
 
+from driver.models import Driver
+
+from driver.routes import router as driver_router
+
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="RideFlow")
@@ -16,3 +20,5 @@ def home():
     return {
         "message": "RideFlow Backend Running"
     }
+
+app.include_router(driver_router)

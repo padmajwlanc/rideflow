@@ -18,5 +18,3 @@ class User(Base):
     password = Column(String)
 
     role = Column(String, default="rider")
-
-print("User model defined successfully!")
