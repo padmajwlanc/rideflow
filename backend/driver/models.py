@@ -8,6 +8,7 @@ from sqlalchemy import ForeignKey
 
 from auth.models import Base
 
+from sqlalchemy import Float
 
 class Driver(Base):
 
@@ -35,4 +36,14 @@ class Driver(Base):
     is_available = Column(
         String,
         default="offline"
+    )
+
+    latitude = Column(
+        Float,
+        nullable=True
+    )
+
+    longitude = Column(
+        Float,
+        nullable=True
     )

@@ -99,3 +99,28 @@ def driver_profile(
         "rating": driver.rating,
         "status": driver.is_available
     }
+@router.patch("/location")
+def update_location(
+    latitude: float,
+    longitude: float,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+
+    driver = db.query(Driver).filter(
+        Driver.user_id == current_user.id
+    ).first()
+
+    if not driver:
+        return {
+            "message": "Driver not found"
+        }
+
+    driver.latitude = latitude
+    driver.longitude = longitude
+
+    db.commit()
+
+    return {
+        "message": "Location updated"
+    }

@@ -9,6 +9,9 @@ from driver.models import Driver
 
 from driver.routes import router as driver_router
 
+from ride.models import Ride
+from ride.routes import router as ride_router
+
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="RideFlow")
@@ -22,3 +25,4 @@ def home():
     }
 
 app.include_router(driver_router)
+app.include_router(ride_router)
