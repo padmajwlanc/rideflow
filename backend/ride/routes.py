@@ -12,6 +12,8 @@ from auth.models import User
 from database.db import get_db
 from driver.models import Driver
 
+from utils.distance import calculate_distance
+
 router = APIRouter(
     prefix="/ride",
     tags=["Ride"]
@@ -26,8 +28,11 @@ def request_ride(
 
     new_ride = Ride(
         rider_id=current_user.id,
-        pickup_location=ride.pickup_location,
-        drop_location=ride.drop_location
+        pickup_latitude=ride.pickup_latitude,
+        pickup_longitude=ride.pickup_longitude,
+
+        drop_latitude=ride.drop_latitude,
+        drop_longitude=ride.drop_longitude
     )
 
     db.add(new_ride)
@@ -69,26 +74,50 @@ def assign_driver(
             "message": "Ride not found"
         }
 
-    driver = db.query(Driver).filter(
+    online_drivers = db.query(Driver).filter(
         Driver.is_available == "online"
-    ).first()
+    ).all()
 
-    if not driver:
+    if not online_drivers:
         return {
             "message": "No drivers available"
         }
 
-    ride.driver_id = driver.id
+    nearest_driver = None
+    shortest_distance = float("inf")
+
+    for driver in online_drivers:
+
+        if driver.latitude is None or driver.longitude is None:
+            continue
+
+        distance = calculate_distance(
+            ride.pickup_latitude,
+            ride.pickup_longitude,
+            driver.latitude,
+            driver.longitude
+        )
+
+        if distance < shortest_distance:
+            shortest_distance = distance
+            nearest_driver = driver
+
+    if nearest_driver is None:
+        return {
+            "message": "No drivers with valid locations found"
+        }
+
+    ride.driver_id = nearest_driver.id
     ride.status = "accepted"
 
-    driver.is_available = "offline"
+    nearest_driver.is_available = "offline"
 
     db.commit()
 
     return {
-        "message": "Driver assigned",
-        "driver_id": driver.id,
-        "ride_id": ride.id
+        "message": "Nearest driver assigned",
+        "driver_id": nearest_driver.id,
+        "distance_km": round(shortest_distance, 2)
     }
 
 @router.post("/start/{ride_id}")

@@ -3,6 +3,10 @@ from pydantic import BaseModel
 
 class RideCreate(BaseModel):
 
-    pickup_location: str
+    pickup_latitude: float
 
-    drop_location: str
+    pickup_longitude: float
+
+    drop_latitude: float
+
+    drop_longitude: float
