@@ -1,4 +1,6 @@
 from fastapi import FastAPI
+from fastapi import WebSocket
+from websocket.manager import manager
 
 from auth.models import Base
 from database.db import engine
@@ -26,3 +28,20 @@ def home():
 
 app.include_router(driver_router)
 app.include_router(ride_router)
+
+@app.websocket("/ws/location")
+async def websocket_location(
+    websocket: WebSocket
+):
+
+    await manager.connect(websocket)
+
+    try:
+
+        while True:
+
+            await websocket.receive_text()
+
+    except Exception:
+
+        manager.disconnect(websocket)

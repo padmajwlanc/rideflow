@@ -1,6 +1,10 @@
 from fastapi import APIRouter
 from fastapi import Depends
 
+from websocket.manager import manager
+
+import asyncio
+
 from sqlalchemy.orm import Session
 
 from driver.models import Driver
@@ -100,7 +104,7 @@ def driver_profile(
         "status": driver.is_available
     }
 @router.patch("/location")
-def update_location(
+async def update_location(
     latitude: float,
     longitude: float,
     current_user: User = Depends(get_current_user),
@@ -120,6 +124,14 @@ def update_location(
     driver.longitude = longitude
 
     db.commit()
+
+    await manager.broadcast(
+        {
+            "driver_id": driver.id,
+            "latitude": driver.latitude,
+            "longitude": driver.longitude
+        }
+    )
 
     return {
         "message": "Location updated"

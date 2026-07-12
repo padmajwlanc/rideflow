@@ -5,6 +5,12 @@ from sqlalchemy.orm import Session
 
 from ride.models import Ride
 from ride.schemas import RideCreate
+from ride.service import create_ride
+from ride.service import assign_nearest_driver
+from ride.service import get_ride_history
+from ride.service import start_ride
+from ride.service import complete_ride
+
 
 from auth.dependencies import get_current_user
 from auth.models import User
@@ -26,20 +32,11 @@ def request_ride(
     db: Session = Depends(get_db)
 ):
 
-    new_ride = Ride(
-        rider_id=current_user.id,
-        pickup_latitude=ride.pickup_latitude,
-        pickup_longitude=ride.pickup_longitude,
-
-        drop_latitude=ride.drop_latitude,
-        drop_longitude=ride.drop_longitude
+    new_ride = create_ride(
+        ride,
+        current_user,
+        db
     )
-
-    db.add(new_ride)
-
-    db.commit()
-
-    db.refresh(new_ride)
 
     return {
         "message": "Ride requested successfully",
@@ -53,11 +50,10 @@ def ride_history(
     db: Session = Depends(get_db)
 ):
 
-    rides = db.query(Ride).filter(
-        Ride.rider_id == current_user.id
-    ).all()
-
-    return rides
+    return get_ride_history(
+        current_user.id,
+        db
+    )
 
 @router.post("/assign/{ride_id}")
 def assign_driver(
@@ -65,79 +61,36 @@ def assign_driver(
     db: Session = Depends(get_db)
 ):
 
-    ride = db.query(Ride).filter(
-        Ride.id == ride_id
-    ).first()
+    result, error = assign_nearest_driver(
+        ride_id,
+        db
+    )
 
-    if not ride:
+    if error:
         return {
-            "message": "Ride not found"
+            "message": error
         }
-
-    online_drivers = db.query(Driver).filter(
-        Driver.is_available == "online"
-    ).all()
-
-    if not online_drivers:
-        return {
-            "message": "No drivers available"
-        }
-
-    nearest_driver = None
-    shortest_distance = float("inf")
-
-    for driver in online_drivers:
-
-        if driver.latitude is None or driver.longitude is None:
-            continue
-
-        distance = calculate_distance(
-            ride.pickup_latitude,
-            ride.pickup_longitude,
-            driver.latitude,
-            driver.longitude
-        )
-
-        if distance < shortest_distance:
-            shortest_distance = distance
-            nearest_driver = driver
-
-    if nearest_driver is None:
-        return {
-            "message": "No drivers with valid locations found"
-        }
-
-    ride.driver_id = nearest_driver.id
-    ride.status = "accepted"
-
-    nearest_driver.is_available = "offline"
-
-    db.commit()
 
     return {
         "message": "Nearest driver assigned",
-        "driver_id": nearest_driver.id,
-        "distance_km": round(shortest_distance, 2)
+        **result
     }
 
 @router.post("/start/{ride_id}")
-def start_ride(
+def start_ride_route(
     ride_id: int,
     db: Session = Depends(get_db)
 ):
 
-    ride = db.query(Ride).filter(
-        Ride.id == ride_id
-    ).first()
+    ride, error = start_ride(
+        ride_id,
+        db
+    )
 
-    if not ride:
+    if error:
         return {
-            "message": "Ride not found"
+            "message": error
         }
-
-    ride.status = "started"
-
-    db.commit()
 
     return {
         "message": "Ride started",
@@ -145,30 +98,20 @@ def start_ride(
     }
 
 @router.post("/complete/{ride_id}")
-def complete_ride(
+def complete_ride_route(
     ride_id: int,
     db: Session = Depends(get_db)
 ):
 
-    ride = db.query(Ride).filter(
-        Ride.id == ride_id
-    ).first()
+    ride, error = complete_ride(
+        ride_id,
+        db
+    )
 
-    if not ride:
+    if error:
         return {
-            "message": "Ride not found"
+            "message": error
         }
-
-    ride.status = "completed"
-
-    driver = db.query(Driver).filter(
-        Driver.id == ride.driver_id
-    ).first()
-
-    if driver:
-        driver.is_available = "online"
-
-    db.commit()
 
     return {
         "message": "Ride completed",
