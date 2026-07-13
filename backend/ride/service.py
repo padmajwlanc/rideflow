@@ -8,6 +8,8 @@ from ride.constants import RideStatus
 
 from utils.fare import calculate_fare
 
+from messaging.producer import publish_event
+
 def create_ride(
     ride_data,
     current_user,
@@ -27,6 +29,15 @@ def create_ride(
     db.commit()
 
     db.refresh(new_ride)
+
+    publish_event(
+        "ride_events",
+        {
+            "event": "ride_requested",
+            "ride_id": new_ride.id,
+            "rider_id": new_ride.rider_id,
+        }
+    )
 
     return new_ride
 
@@ -80,6 +91,17 @@ def assign_nearest_driver(
 
     db.commit()
 
+    publish_event(
+        "ride_events",
+        {
+            "event": "ride_assigned",
+            "ride_id": ride.id,
+            "driver_id": nearest_driver.id,
+            "distance_km": round(shortest_distance, 2),
+            "fare": ride.fare
+        }
+    )
+
     return (
         {
             "driver_id": nearest_driver.id,
@@ -115,6 +137,15 @@ def start_ride(
 
     db.commit()
 
+    publish_event(
+        "ride_events",
+        {
+            "event": "ride_started",
+            "ride_id": ride.id,
+            "driver_id": ride.driver_id
+        }
+    )
+
     return ride, None
 
 def complete_ride(
@@ -139,5 +170,15 @@ def complete_ride(
         driver.is_available = "online"
 
     db.commit()
+
+    publish_event(
+        "ride_events",
+        {
+            "event": "ride_completed",
+            "ride_id": ride.id,
+            "driver_id": ride.driver_id,
+            "fare": ride.fare
+        }
+    )
 
     return ride, None
