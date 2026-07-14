@@ -1,4 +1,5 @@
 from sqlalchemy.orm import Session
+from datetime import datetime
 
 from ride.models import Ride
 
@@ -36,6 +37,10 @@ def create_ride(
             "event": "ride_requested",
             "ride_id": new_ride.id,
             "rider_id": new_ride.rider_id,
+            "pickup_latitude": new_ride.pickup_latitude,
+            "pickup_longitude": new_ride.pickup_longitude,
+            "drop_latitude": new_ride.drop_latitude,
+            "drop_longitude": new_ride.drop_longitude
         }
     )
 
@@ -97,6 +102,7 @@ def assign_nearest_driver(
             "event": "ride_assigned",
             "ride_id": ride.id,
             "driver_id": nearest_driver.id,
+            "rider_id": ride.rider_id,
             "distance_km": round(shortest_distance, 2),
             "fare": ride.fare
         }
@@ -142,7 +148,8 @@ def start_ride(
         {
             "event": "ride_started",
             "ride_id": ride.id,
-            "driver_id": ride.driver_id
+            "driver_id": ride.driver_id,
+            "rider_id": ride.rider_id
         }
     )
 
@@ -177,7 +184,13 @@ def complete_ride(
             "event": "ride_completed",
             "ride_id": ride.id,
             "driver_id": ride.driver_id,
-            "fare": ride.fare
+            "rider_id": ride.rider_id,
+            "fare": ride.fare,
+            "pickup_latitude": ride.pickup_latitude,
+            "pickup_longitude": ride.pickup_longitude,
+            "drop_latitude": ride.drop_latitude,
+            "drop_longitude": ride.drop_longitude,
+            "completed_at": datetime.now().isoformat()
         }
     )
 
