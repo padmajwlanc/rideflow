@@ -1,6 +1,6 @@
 {
-    "total_rides": 3,
-    "completed_rides": 1,
+    "total_rides": 6,
+    "completed_rides": 3,
     "average_fare": 58.0,
-    "total_fare": 58
+    "total_fare": 174
 }

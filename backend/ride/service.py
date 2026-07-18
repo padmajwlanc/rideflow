@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from datetime import datetime
+from datetime import datetime, timezone
 
 from ride.models import Ride
 
@@ -10,6 +10,7 @@ from ride.constants import RideStatus
 from utils.fare import calculate_fare
 
 from messaging.producer import publish_event
+
 
 def create_ride(
     ride_data,
@@ -45,6 +46,7 @@ def create_ride(
     )
 
     return new_ride
+
 
 def assign_nearest_driver(
     ride_id: int,
@@ -89,7 +91,7 @@ def assign_nearest_driver(
 
     ride.driver_id = nearest_driver.id
     ride.status = RideStatus.ACCEPTED
-    
+
     ride.fare = calculate_fare(shortest_distance)
 
     nearest_driver.is_available = "offline"
@@ -116,6 +118,8 @@ def assign_nearest_driver(
         },
         None
     )
+
+
 def get_ride_history(
     rider_id: int,
     db: Session
@@ -126,6 +130,7 @@ def get_ride_history(
     ).all()
 
     return rides
+
 
 def start_ride(
     ride_id: int,
@@ -140,6 +145,7 @@ def start_ride(
         return None, "Ride not found"
 
     ride.status = RideStatus.STARTED
+    ride.started_at = datetime.now(timezone.utc)
 
     db.commit()
 
@@ -155,6 +161,7 @@ def start_ride(
 
     return ride, None
 
+
 def complete_ride(
     ride_id: int,
     db: Session
@@ -168,6 +175,7 @@ def complete_ride(
         return None, "Ride not found"
 
     ride.status = RideStatus.COMPLETED
+    ride.completed_at = datetime.now(timezone.utc)
 
     driver = db.query(Driver).filter(
         Driver.id == ride.driver_id
@@ -189,8 +197,7 @@ def complete_ride(
             "pickup_latitude": ride.pickup_latitude,
             "pickup_longitude": ride.pickup_longitude,
             "drop_latitude": ride.drop_latitude,
-            "drop_longitude": ride.drop_longitude,
-            "completed_at": datetime.now().isoformat()
+            "drop_longitude": ride.drop_longitude
         }
     )
 

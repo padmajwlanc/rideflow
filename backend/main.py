@@ -14,6 +14,8 @@ from driver.routes import router as driver_router
 from ride.models import Ride
 from ride.routes import router as ride_router
 
+from analytics.models import AnalyticsSummary
+
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="RideFlow")
